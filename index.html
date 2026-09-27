@@ -2,13 +2,17 @@
 <!--
   index.html: the structure of the app (what's on the screen).
   - The look (colors, sizes) is in style.css.
-  - Talking to the podcast directories is in directory.js.
-  - The behavior (what happens when you tap) is in app.js.
+  - The behavior is split into five files, loaded at the bottom:
+      helpers.js    small tools (formatting times and dates...)
+      directory.js  searching podcasts and getting episodes (fyyd, Apple, RSS)
+      storage.js    what's remembered on your phone
+      player.js     the audio player
+      app.js        the screens and what happens when you tap
 -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>MyPodcasts</title>
   <meta name="theme-color" content="#0057B7">
   <link rel="manifest" href="manifest.json">
@@ -20,69 +24,130 @@
   <!-- Top bar. The back arrow only shows on a podcast page. -->
   <header>
     <button id="backButton" class="icon-button" aria-label="Back" hidden>
-      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
-        <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <div class="logo">My<span>Podcasts</span></div>
   </header>
 
   <main>
-    <!-- ===== Screen 1: Search ===== -->
-    <section id="searchScreen">
-      <form id="searchForm">
-        <input id="searchInput" type="search" placeholder="Podcast name" autocomplete="off" enterkeyhint="search" aria-label="Podcast name">
-        <button type="submit">Search</button>
-      </form>
-
-      <!-- app.js puts the search results in here. -->
-      <div id="results"></div>
-
-      <p class="muted small">Search by fyyd.de, with Apple as backup. · Version 0.2 · Step 2</p>
+    <!-- ===== Tab 1: My Podcasts ===== -->
+    <section id="libraryScreen">
+      <h2 class="screen-title">My Podcasts</h2>
+      <div id="libraryGrid" class="grid"></div>
+      <div id="libraryEmpty" class="empty" hidden>
+        <p>No subscriptions yet.</p>
+        <p class="muted">Find a podcast and tap <b>Subscribe</b>.</p>
+        <button id="findPodcastsButton" class="primary">Find podcasts</button>
+      </div>
+      <p class="muted small">Version 0.5 · Steps 3–5</p>
     </section>
 
-    <!-- ===== Screen 2: One podcast ===== -->
+    <!-- ===== Tab 2: New episodes ===== -->
+    <section id="newScreen" hidden>
+      <div class="title-row">
+        <h2 class="screen-title">New episodes</h2>
+        <button id="refreshButton" class="secondary">Refresh</button>
+      </div>
+      <p id="newStatus" class="muted status"></p>
+      <div id="newList"></div>
+      <div id="newEmpty" class="empty" hidden>
+        <p>Nothing here yet.</p>
+        <p class="muted">Subscribe to podcasts, and their newest episodes show up here.</p>
+      </div>
+    </section>
+
+    <!-- ===== Tab 3: Search ===== -->
+    <section id="searchScreen" hidden>
+      <form id="searchForm">
+        <input id="searchInput" type="search" placeholder="Podcast name" autocomplete="off" enterkeyhint="search" aria-label="Podcast name">
+        <button type="submit" class="primary">Search</button>
+      </form>
+      <div id="results"></div>
+      <p class="muted small">Search by fyyd.de, with Apple as backup.</p>
+    </section>
+
+    <!-- ===== One podcast (opens from any tab) ===== -->
     <section id="podcastScreen" hidden>
       <div class="podcast-head">
         <img id="podcastImage" alt="">
         <div>
           <h2 id="podcastTitle"></h2>
           <p id="podcastAuthor" class="muted"></p>
+          <button id="subscribeButton" class="primary">Subscribe</button>
         </div>
       </div>
       <!-- Tap the description to show all of it. -->
       <p id="podcastDescription" class="description clamped"></p>
-
       <h3 class="section-title">Episodes</h3>
-      <!-- app.js puts the episode list in here. -->
       <div id="episodes"></div>
     </section>
   </main>
 
-  <!-- ===== Player bar at the bottom (hidden until you play something) ===== -->
+  <!-- ===== Player (hidden until something is in it) ===== -->
   <div id="player" hidden>
-    <img id="playerImage" alt="">
-    <div class="player-text">
-      <div id="playerTitle"></div>
-      <div id="playerPodcast" class="muted"></div>
+    <div id="progressLine"></div>
+    <div class="player-top">
+      <img id="playerImage" alt="">
+      <div class="player-text">
+        <div id="playerTitle"></div>
+        <div id="playerPodcast" class="muted"></div>
+      </div>
+      <button id="playPauseButton" class="icon-button play" aria-label="Play or pause">
+        <!-- Two icons; style.css shows one of them depending on the state. -->
+        <svg class="icon-play" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+        <svg class="icon-pause" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>
+      </button>
+      <!-- Arrow to show/hide the extra controls. -->
+      <button id="expandButton" class="icon-button expand" aria-label="More controls" aria-expanded="true">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
     </div>
-    <button id="playPauseButton" class="icon-button play" aria-label="Play or pause">
-      <!-- Two icons; style.css shows one of them depending on the state. -->
-      <svg class="icon-play" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
-      <svg class="icon-pause" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>
-    </button>
-    <div class="progress">
-      <span id="timeNow">0:00</span>
-      <input id="seekBar" type="range" min="0" max="0" step="1" value="0" aria-label="Position in episode">
-      <span id="timeTotal">0:00</span>
+
+    <!-- Extra controls (visible when the player is expanded). -->
+    <div class="player-extra">
+      <div class="progress">
+        <span id="timeNow">0:00</span>
+        <input id="seekBar" type="range" min="0" max="0" step="1" value="0" aria-label="Position in episode">
+        <span id="timeTotal">0:00</span>
+      </div>
+      <div class="controls">
+        <button id="skipBackButton" class="icon-button skip" aria-label="Back 15 seconds">
+          <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M12 5V2L7 6l5 4V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z" fill="currentColor"/></svg>
+          <span>15</span>
+        </button>
+        <button id="speedButton" class="speed" aria-label="Playback speed">1×</button>
+        <button id="skipForwardButton" class="icon-button skip" aria-label="Forward 30 seconds">
+          <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M12 5V2l5 4-5 4V7a6 6 0 1 0 6 6h2a8 8 0 1 1-8-8z" fill="currentColor"/></svg>
+          <span>30</span>
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- The actual audio player. It's invisible; the player bar above controls it. -->
+  <!-- ===== Tab bar at the bottom ===== -->
+  <nav id="tabBar">
+    <button class="tab active" data-tab="library">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" fill="currentColor"/></svg>
+      <span>My Podcasts</span>
+    </button>
+    <button class="tab" data-tab="new">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 6h16v2H4zM4 11h16v2H4zM4 16h10v2H4z" fill="currentColor"/><circle cx="19" cy="17" r="3" fill="#FFD700"/></svg>
+      <span>New</span>
+    </button>
+    <button class="tab" data-tab="search">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M15 15l5 5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      <span>Search</span>
+    </button>
+  </nav>
+
+  <!-- The actual audio player. It's invisible; the player above controls it. -->
   <audio id="audio" preload="metadata"></audio>
 
-  <!-- Load the behavior. directory.js first, because app.js uses it. -->
+  <!-- Load the behavior, in this order (later files use earlier ones). -->
+  <script src="helpers.js"></script>
   <script src="directory.js"></script>
+  <script src="storage.js"></script>
+  <script src="player.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
