@@ -1,0 +1,199 @@
+/* style.css: the look of the app (colors, sizes, spacing). */
+
+/* ---------- Colors in one place ---------- */
+:root {
+  --blue: #0057B7;
+  --yellow: #FFD700;
+  --bg: #f4f6fa;
+  --card: #ffffff;
+  --text: #1b1f2a;
+  --muted: #5b6475;
+  --line: #e3e7ef;
+  --error: #b3261e;
+}
+
+/* Dark colors when the phone is in dark mode. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #11151c;
+    --card: #1b212c;
+    --text: #eef1f6;
+    --muted: #9aa3b5;
+    --line: #2a3140;
+    --error: #ff8a80;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* When the player bar is showing, leave room at the bottom so it doesn't cover the list. */
+body.has-player main { padding-bottom: 140px; }
+
+/* hidden="" must always win, even over display rules below. */
+[hidden] { display: none !important; }
+
+.muted { color: var(--muted); }
+.small { font-size: 0.8rem; margin-top: 24px; }
+.error { color: var(--error); }
+
+/* ---------- Top bar ---------- */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--blue);
+  color: #fff;
+  padding: 12px 16px;
+  min-height: 64px; /* same height with or without the back arrow */
+}
+.logo { font-size: 1.3rem; font-weight: 700; }
+.logo span { color: var(--yellow); }
+
+/* Round buttons that only contain an icon (back, play/pause). */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+header .icon-button { margin-left: -8px; }
+
+main { padding: 16px; max-width: 640px; margin: 0 auto; }
+
+/* ---------- Search ---------- */
+#searchForm { display: flex; gap: 8px; margin-bottom: 16px; }
+#searchInput {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  font-size: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text);
+}
+#searchForm button {
+  padding: 0 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--yellow);
+  color: #1b1f2a;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.section-title {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 20px 0 8px;
+}
+
+/* One row in a list (a podcast in the results, or an episode). */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 8px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+.row img {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--line);
+}
+.row-text { min-width: 0; flex: 1; }
+.row-title { font-weight: 600; line-height: 1.3; }
+.row-sub { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+.row.playing { outline: 2px solid var(--yellow); }
+
+/* ---------- Podcast page ---------- */
+.podcast-head { display: flex; gap: 14px; align-items: center; }
+.podcast-head img {
+  width: 110px;
+  height: 110px;
+  flex: none;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--line);
+}
+.podcast-head h2 { margin: 0 0 4px; font-size: 1.2rem; line-height: 1.25; }
+.podcast-head p { margin: 0; }
+
+.description { line-height: 1.45; white-space: pre-line; cursor: pointer; }
+/* Show only the first 4 lines until tapped. */
+.description.clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ---------- Player bar ---------- */
+#player {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: 48px 1fr 48px;
+  gap: 6px 12px;
+  align-items: center;
+  padding: 10px 16px 14px;
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+}
+#playerImage { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; background: var(--line); }
+.player-text { min-width: 0; }
+#playerTitle, #playerPodcast { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#playerTitle { font-weight: 600; }
+#playerPodcast { font-size: 0.85rem; }
+
+.icon-button.play { width: 48px; height: 48px; background: var(--yellow); color: #1b1f2a; }
+/* Show the play icon when paused, the pause icon when playing. */
+.icon-button.play .icon-pause { display: none; }
+.icon-button.play.is-playing .icon-play { display: none; }
+.icon-button.play.is-playing .icon-pause { display: block; }
+
+.progress {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+#seekBar { flex: 1; accent-color: var(--blue); }
