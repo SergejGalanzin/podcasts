@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<!--
+  index.html: the main page of the app.
+  When your phone opens https://sergejgalanzin.github.io/podcasts/ it loads this file first.
+
+  A web page is made of three languages:
+    - HTML: the structure (headings, text, buttons). That's most of this file.
+    - CSS: the look (colors, sizes, spacing). It's inside <style> ... </style> below.
+    - JavaScript: the behavior (what happens when you tap). It's inside <script> ... </script> at the bottom.
+
+  Step 1 goal: no podcast features yet. Just prove the app can be installed on your phone.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <!-- Tells the phone: use the real screen width, don't zoom out like a desktop site. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- The name shown in the browser tab. -->
+  <title>MyPodcasts</title>
+
+  <!-- The color of the phone's top bar while the app is open. -->
+  <meta name="theme-color" content="#0057B7">
+
+  <!-- The "manifest" is the app's ID card: name, icon, colors. Chrome reads it to offer "Install app". -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Icon used in browser tabs and bookmarks. -->
+  <link rel="icon" href="icon-192.png">
+
+  <style>
+    /* ---------- CSS: the look ---------- */
+
+    /* Colors in one place, so they're easy to change later. */
+    :root {
+      --blue: #0057B7;
+      --yellow: #FFD700;
+      --bg: #f4f6fa;
+      --card: #ffffff;
+      --text: #1b1f2a;
+      --muted: #5b6475;
+    }
+
+    /* If the phone is in dark mode, swap to dark colors. */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #11151c;
+        --card: #1b212c;
+        --text: #eef1f6;
+        --muted: #9aa3b5;
+      }
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* The blue bar at the top. */
+    header {
+      background: var(--blue);
+      color: #fff;
+      padding: 16px;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+    header span { color: var(--yellow); }
+
+    main { padding: 16px; max-width: 560px; margin: 0 auto; }
+
+    /* White boxes with rounded corners. */
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+    .card h2 { margin: 0 0 8px; font-size: 1.1rem; }
+    .card p { margin: 6px 0; line-height: 1.45; }
+    .muted { color: var(--muted); font-size: 0.9rem; }
+
+    /* The "Install app" button. Hidden until Chrome says installing is possible. */
+    #installButton {
+      display: none;
+      width: 100%;
+      padding: 14px;
+      border: 0;
+      border-radius: 10px;
+      background: var(--yellow);
+      color: #1b1f2a;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ---------- HTML: the structure ---------- -->
+
+  <header>My<span>Podcasts</span></header>
+
+  <main>
+    <div class="card">
+      <h2>Hello, Sergej!</h2>
+      <p>If you can read this on your phone, Step 1 is working.</p>
+      <!-- JavaScript fills in this line (see "status" below). -->
+      <p id="status" class="muted">Checking…</p>
+    </div>
+
+    <div class="card" id="installCard">
+      <h2>Install on your phone</h2>
+      <button id="installButton">Install app</button>
+      <p class="muted">
+        No button? In Chrome, tap the three dots (top right), then
+        <b>Add to Home screen</b> or <b>Install app</b>.
+      </p>
+    </div>
+
+    <!-- Change this number every time we publish, so you can tell you have the newest version. -->
+    <p class="muted">Version 0.1 · Step 1</p>
+  </main>
+
+  <script>
+    // ---------- JavaScript: the behavior ----------
+    // Lines starting with // are comments: notes for humans. The phone ignores them.
+
+    // 1) Show whether we're running as an installed app or inside the normal browser.
+    //    "standalone" = opened from the home-screen icon, full-screen, no address bar.
+    const isInstalled = window.matchMedia("(display-mode: standalone)").matches;
+    const status = document.getElementById("status");
+
+    if (isInstalled) {
+      status.textContent = "Running as an installed app. Step 1 done!";
+      // No need to show install instructions inside the installed app.
+      document.getElementById("installCard").style.display = "none";
+    } else {
+      status.textContent = "Running in the browser. Install it using the box below.";
+    }
+
+    // 2) Register the "service worker" (the file sw.js).
+    //    It's a small helper that lets the app open even without internet.
+    //    Chrome also likes to see one before it treats a page as an installable app.
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js");
+    }
+
+    // 3) The "Install app" button.
+    //    When Chrome decides the app can be installed, it fires an event called "beforeinstallprompt".
+    //    We catch it, keep it for later, and show our button.
+    let installEvent = null;
+    const installButton = document.getElementById("installButton");
+
+    window.addEventListener("beforeinstallprompt", (event) => {
+      event.preventDefault();          // don't show Chrome's own banner right now
+      installEvent = event;            // keep it so the button can use it
+      installButton.style.display = "block";
+    });
+
+    // When you tap the button, ask Chrome to show its install dialog.
+    installButton.addEventListener("click", async () => {
+      if (!installEvent) return;
+      installEvent.prompt();
+      await installEvent.userChoice;   // wait until you tap "Install" or "Cancel"
+      installEvent = null;
+      installButton.style.display = "none";
+    });
+
+    // After a successful install, update the message.
+    window.addEventListener("appinstalled", () => {
+      status.textContent = "Installed! Now open MyPodcasts from your home screen.";
+    });
+  </script>
+</body>
+</html>
