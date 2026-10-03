@@ -1,11 +1,13 @@
 // app.js: the screens and what happens when you tap.
 // It uses helpers.js (small tools), directory.js (searching, episodes),
-// storage.js (what's saved on the phone) and player.js (the audio player).
+// storage.js (what's saved on the phone), player.js (the audio player)
+// and notes.js (voice notes).
 //
 // Screens:  "library" = My Podcasts,  "new" = New episodes,  "search" = Search,
-//           "podcast" = one podcast's page (opened from any of the three).
+//           "notes" = your notes,
+//           "podcast" = one podcast's page (opened from any of the tabs).
 
-const TABS = ["library", "new", "search"];
+const TABS = ["library", "new", "search", "notes"];
 const REFRESH_AFTER = 30 * 60 * 1000; // re-check a podcast for new episodes after 30 minutes
 const NEW_LIST_LENGTH = 60;
 
@@ -22,7 +24,7 @@ const scrollPositions = {}; // where you were in each tab's list
 //   - opening a podcast ADDS a note, so "back" returns to where you were
 
 function showScreen(name) {
-  for (const screen of ["library", "new", "search", "podcast"]) {
+  for (const screen of ["library", "new", "search", "notes", "podcast"]) {
     $(`${screen}Screen`).hidden = screen !== name;
   }
   $("backButton").hidden = name !== "podcast";
@@ -35,6 +37,7 @@ function showScreen(name) {
   }
   if (name === "library") drawLibrary();
   if (name === "new") showNew();
+  if (name === "notes") drawNotes();
 }
 
 // Show a tab and put you back where you were in its list.
@@ -58,6 +61,7 @@ document.querySelectorAll(".tab").forEach((tab) => {
 
 // "Back" (gesture, arrow or swipe) -> the browser goes one note back -> "popstate".
 window.addEventListener("popstate", (event) => {
+  if (handleNotePopstate()) return; // "back" only closed the note box
   const state = event.state || { screen: "library" };
   if (state.screen === "podcast") openPodcast(state.podcast, false);
   else goToTab(state.screen);
@@ -90,6 +94,7 @@ document.addEventListener(
     // very edge, and touches on the player or the tab bar.
     if (
       $("podcastScreen").hidden ||
+      isNoteSheetOpen() ||
       event.touches.length !== 1 ||
       touch.clientX < SCREEN_EDGE ||
       event.target.closest("#player, #tabBar")
@@ -247,7 +252,7 @@ async function refreshSubscriptions(force) {
   if (isRefreshing) return;
   const due = getSubscriptions().filter((podcast) => {
     const cached = getCachedEpisodes(podcast);
-    return force || !cached || Date.now() - cached.at > REFRESH_AFTER;
+    return force || !cached || Date.now() - cached.at > REFRESH_AFTER || isBlockedImage(podcast.image);
   });
   if (!due.length) return;
 
@@ -259,6 +264,7 @@ async function refreshSubscriptions(force) {
   await runLimited(due, 3, async (podcast) => {
     try {
       saveCachedEpisodes(podcast, await getEpisodes(podcast));
+      repairImage(podcast);
     } catch {
       failed.push(podcast.title);
     }
@@ -269,6 +275,18 @@ async function refreshSubscriptions(force) {
   $("newStatus").textContent =
     `Updated ${formatClock(new Date())}` + (failed.length ? ` · couldn't check: ${failed.join(", ")}` : "");
   if (!$("newScreen").hidden) drawNew();
+  if (!$("libraryScreen").hidden) drawLibrary();
+}
+
+// If the directory told us a newer picture address for this podcast, save it.
+function repairImage(podcast) {
+  const fresh = freshImages.get(feedKey(podcast.feedUrl));
+  if (!fresh || fresh === podcast.image) return;
+  podcast.image = fresh;
+  if (updatePodcastImage(podcast, fresh) && nowPlaying && feedKey(nowPlaying.podcast.feedUrl) === feedKey(podcast.feedUrl)) {
+    nowPlaying.podcast.image = fresh;
+    setImage($("playerImage"), fresh);
+  }
 }
 
 $("refreshButton").addEventListener("click", () => refreshSubscriptions(true));
@@ -344,6 +362,8 @@ async function openPodcast(podcast, addToHistory = true) {
     if (currentPodcast !== podcast) return; // you already left this page
     loadedEpisodes = episodes;
     saveCachedEpisodes(podcast, episodes); // only saves if you're subscribed
+    repairImage(podcast);
+    setImage($("podcastImage"), podcast.image);
     list.replaceChildren(...episodes.map((e) => episodeRow(e, podcast)));
     if (!episodes.length) list.append(el("p", "muted", "No episodes found."));
   } catch (error) {

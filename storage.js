@@ -10,6 +10,7 @@
 //   speed          - your playback speed
 //   episodeCache   - the latest episodes of your subscriptions (for the "New" list)
 //   lastPlayed     - the episode in the player, so it's ready when you reopen the app
+//   notes          - your voice notes
 
 const STORAGE_PREFIX = "mypodcasts.";
 
@@ -76,6 +77,29 @@ function unsubscribe(podcast) {
   writeStored("episodeCache", cache);
 }
 
+// Replace a saved podcast's picture address (used to repair broken pictures).
+// Returns true if something was changed.
+function updatePodcastImage(podcast, image) {
+  const key = feedKey(podcast.feedUrl);
+  let changed = false;
+  const subscriptions = getSubscriptions();
+  for (const saved of subscriptions) {
+    if (feedKey(saved.feedUrl) === key && saved.image !== image) {
+      saved.image = image;
+      changed = true;
+    }
+  }
+  if (changed) writeStored("subscriptions", subscriptions);
+
+  const last = readStored("lastPlayed", null);
+  if (last && feedKey(last.podcast.feedUrl) === key && last.podcast.image !== image) {
+    last.podcast.image = image;
+    writeStored("lastPlayed", last);
+    changed = true;
+  }
+  return changed;
+}
+
 // ---------------------------------------------------------------------------
 // Where you stopped in each episode
 // ---------------------------------------------------------------------------
@@ -140,4 +164,42 @@ function getLastPlayed() {
 
 function saveLastPlayed(episode, podcast) {
   writeStored("lastPlayed", { episode, podcast });
+}
+
+// ---------------------------------------------------------------------------
+// Notes
+// ---------------------------------------------------------------------------
+// A note: { id, text, createdAt, podcast, episode, position }
+// podcast / episode / position say what you were listening to (empty if nothing was playing).
+
+function getNotes() {
+  return readStored("notes", []).map((note) => ({
+    ...note,
+    episode: note.episode ? reviveEpisode(note.episode) : null,
+  }));
+}
+
+function addNote(text, context) {
+  const notes = readStored("notes", []);
+  notes.unshift({
+    id: String(Date.now()),
+    text,
+    createdAt: Date.now(),
+    podcast: context ? context.podcast : null,
+    episode: context ? context.episode : null,
+    position: context ? context.position : 0,
+  });
+  writeStored("notes", notes);
+  askToKeepStorage();
+}
+
+function updateNote(id, text) {
+  const notes = readStored("notes", []);
+  const note = notes.find((n) => n.id === id);
+  if (note) note.text = text;
+  writeStored("notes", notes);
+}
+
+function deleteNote(id) {
+  writeStored("notes", readStored("notes", []).filter((n) => n.id !== id));
 }

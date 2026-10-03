@@ -26,13 +26,14 @@ function announceChange() {
 // Putting an episode into the player
 // ---------------------------------------------------------------------------
 
-function loadEpisode(episode, podcast, autoplay) {
+function loadEpisode(episode, podcast, autoplay, startFrom = null) {
   nowPlaying = { episode, podcast };
   saveLastPlayed(episode, podcast);
 
-  // Resume: if you stopped somewhere in the middle before, start there.
+  // Where to start: at a chosen moment (startFrom), or where you stopped before (resume).
   const saved = getPosition(episode.audioUrl);
-  startAt = saved && !saved.done && saved.time > 5 ? saved.time : null;
+  if (startFrom !== null) startAt = startFrom;
+  else startAt = saved && !saved.done && saved.time > 5 ? saved.time : null;
 
   audio.src = episode.audioUrl;
   audio.defaultPlaybackRate = audio.playbackRate = getSpeed();
@@ -54,7 +55,7 @@ function loadEpisode(episode, podcast, autoplay) {
     navigator.mediaSession.metadata = new MediaMetadata({
       title: episode.title,
       artist: podcast.title,
-      artwork: podcast.image ? [{ src: podcast.image }] : [],
+      artwork: podcast.image && !isBlockedImage(podcast.image) ? [{ src: podcast.image }] : [],
     });
   }
 
@@ -71,6 +72,17 @@ function playEpisode(episode, podcast) {
   }
   savePositionNow(); // remember where you were in the previous episode
   loadEpisode(episode, podcast, true);
+}
+
+// Play an episode from a chosen moment (used by notes: "jump to where I said this").
+function playEpisodeAt(episode, podcast, seconds) {
+  if (nowPlaying && nowPlaying.episode.audioUrl === episode.audioUrl && audio.readyState >= 1) {
+    audio.currentTime = seconds;
+    audio.play().catch(showPlayerProblem);
+    return;
+  }
+  savePositionNow();
+  loadEpisode(episode, podcast, true, seconds);
 }
 
 // When the app opens: put the last episode back into the player, paused.

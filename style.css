@@ -324,3 +324,124 @@ body.player-expanded .player-extra { display: block; }
   cursor: pointer;
 }
 .tab.active { color: var(--accent); }
+
+/* The round microphone button in the middle of the tab bar. */
+.tab-middle { flex: none; width: 70px; display: flex; align-items: center; justify-content: center; }
+.mic-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 50px;
+  height: 50px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--yellow);
+  color: #1b1f2a;
+  cursor: pointer;
+}
+.mic-button.in-box { width: 52px; height: 52px; }
+/* While listening: red, gently pulsing. */
+.mic-button.listening { background: #d93025; color: #fff; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 48, 37, 0.5); }
+  50% { box-shadow: 0 0 0 12px rgba(217, 48, 37, 0); }
+}
+
+/* ---------- Note box ---------- */
+/* It sits at the top of the screen, so the phone's keyboard can't cover it. */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 72px 12px 12px;
+  background: rgba(0, 0, 0, 0.5);
+}
+.sheet {
+  width: 100%;
+  max-width: 560px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+.sheet h2 { margin: 0 0 4px; font-size: 1.15rem; }
+.sheet p { margin: 0 0 10px; font-size: 0.85rem; }
+#noteText {
+  width: 100%;
+  padding: 12px;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.4;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  resize: vertical;
+}
+#noteStatus { margin: 8px 0 12px; }
+.sheet-buttons { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+/* ---------- Notes list ---------- */
+.note {
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+.note-text { margin: 0 0 6px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.note-meta { font-size: 0.8rem; color: var(--muted); }
+.note-jump {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.note-jump-time { display: block; font-weight: 700; font-size: 0.85rem; color: var(--accent); }
+.note-jump-title {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.note-actions { display: flex; gap: 4px; margin: 6px -8px -6px; }
+.text-button {
+  padding: 8px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.text-button.danger { color: var(--error); }
+
+/* ---------- Short messages ("Note saved") ---------- */
+#toast {
+  position: fixed;
+  left: 50%;
+  top: 11px; /* inside the blue top bar, so it never covers buttons */
+  transform: translateX(-50%);
+  z-index: 40;
+  padding: 10px 18px;
+  border-radius: 20px;
+  background: #1b1f2a;
+  color: #fff;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}

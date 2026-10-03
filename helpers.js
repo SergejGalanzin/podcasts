@@ -13,10 +13,14 @@ function el(tag, className, text) {
   return element;
 }
 
-// Show a picture, or an empty grey box when there is none.
+// Show a picture. If there is none, or it fails to load, show our own icon instead.
+const PLACEHOLDER_IMAGE = "icon-192.png";
 function setImage(image, address) {
-  if (address) image.src = address;
-  else image.removeAttribute("src");
+  image.onerror = () => {
+    image.onerror = null; // don't try again if even the placeholder fails
+    image.src = PLACEHOLDER_IMAGE;
+  };
+  image.src = address && !isBlockedImage(address) ? address : PLACEHOLDER_IMAGE;
 }
 
 // Podcast descriptions often contain HTML (bold text, links...). Keep only the text.
@@ -52,6 +56,16 @@ function formatDate(date) {
 // A clock time -> "16:42"
 function formatClock(date) {
   return `${date.getHours()}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+// Show a short message at the bottom of the screen for 2 seconds ("Note saved").
+let toastTimer = null;
+function showToast(message) {
+  const toast = $("toast");
+  toast.textContent = message;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (toast.hidden = true), 2000);
 }
 
 // Run a task for every item, but at most `limit` at the same time

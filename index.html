@@ -7,6 +7,7 @@
       directory.js  searching podcasts and getting episodes (fyyd, Apple, RSS)
       storage.js    what's remembered on your phone
       player.js     the audio player
+      notes.js      voice notes
       app.js        the screens and what happens when you tap
 -->
 <html lang="en">
@@ -39,7 +40,7 @@
         <p class="muted">Find a podcast and tap <b>Subscribe</b>.</p>
         <button id="findPodcastsButton" class="primary">Find podcasts</button>
       </div>
-      <p class="muted small">Version 0.5 · Steps 3–5</p>
+      <p class="muted small">Version 0.6</p>
     </section>
 
     <!-- ===== Tab 2: New episodes ===== -->
@@ -64,6 +65,19 @@
       </form>
       <div id="results"></div>
       <p class="muted small">Search by fyyd.de, with Apple as backup.</p>
+    </section>
+
+    <!-- ===== Tab 4: Notes ===== -->
+    <section id="notesScreen" hidden>
+      <div class="title-row">
+        <h2 class="screen-title">Notes</h2>
+        <button id="shareAllButton" class="secondary">Share all</button>
+      </div>
+      <div id="notesList"></div>
+      <div id="notesEmpty" class="empty" hidden>
+        <p>No notes yet.</p>
+        <p class="muted">Tap the yellow microphone while listening and say what's on your mind.</p>
+      </div>
     </section>
 
     <!-- ===== One podcast (opens from any tab) ===== -->
@@ -128,17 +142,47 @@
   <nav id="tabBar">
     <button class="tab active" data-tab="library">
       <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" fill="currentColor"/></svg>
-      <span>My Podcasts</span>
+      <span>Podcasts</span>
     </button>
     <button class="tab" data-tab="new">
       <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 6h16v2H4zM4 11h16v2H4zM4 16h10v2H4z" fill="currentColor"/><circle cx="19" cy="17" r="3" fill="#FFD700"/></svg>
       <span>New</span>
     </button>
+    <!-- The microphone in the middle: start a voice note. -->
+    <div class="tab-middle">
+      <button id="noteButton" class="mic-button" aria-label="New voice note">
+        <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-5a3.5 3.5 0 0 0-7 0v5A3.5 3.5 0 0 0 12 15z" fill="currentColor"/><path d="M6 11.5a6 6 0 0 0 12 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
     <button class="tab" data-tab="search">
       <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M15 15l5 5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
       <span>Search</span>
     </button>
+    <button class="tab" data-tab="notes">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 11h7M9 15h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Notes</span>
+    </button>
   </nav>
+
+  <!-- ===== Note box (opens when you tap the microphone) ===== -->
+  <div id="noteSheet" class="sheet-backdrop" hidden>
+    <div class="sheet" role="dialog" aria-labelledby="noteTitle">
+      <h2 id="noteTitle">New note</h2>
+      <p id="noteContext" class="muted"></p>
+      <textarea id="noteText" rows="5" placeholder="Speak, or type here" aria-label="Note text"></textarea>
+      <p id="noteStatus" class="muted status"></p>
+      <div class="sheet-buttons">
+        <button id="noteCancelButton" class="secondary">Cancel</button>
+        <button id="noteMicButton" class="mic-button in-box" aria-label="Start or stop listening">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-5a3.5 3.5 0 0 0-7 0v5A3.5 3.5 0 0 0 12 15z" fill="currentColor"/><path d="M6 11.5a6 6 0 0 0 12 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button id="noteSaveButton" class="primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Short messages like "Note saved". -->
+  <div id="toast" hidden></div>
 
   <!-- The actual audio player. It's invisible; the player above controls it. -->
   <audio id="audio" preload="metadata"></audio>
@@ -148,6 +192,7 @@
   <script src="directory.js"></script>
   <script src="storage.js"></script>
   <script src="player.js"></script>
+  <script src="notes.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -9,7 +9,7 @@
 //   3. Only if there's no internet, use the saved copy.
 
 // Name of the storage box for saved files. Changing the name starts a fresh box.
-const CACHE_NAME = "mypodcasts-v5";
+const CACHE_NAME = "mypodcasts-v6";
 
 // When a new version of this file arrives, start using it immediately
 // instead of waiting until every app window is closed. Throw away old boxes.

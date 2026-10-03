@@ -15,6 +15,14 @@ const APPLE_API = "https://itunes.apple.com";
 const HOW_MANY_RESULTS = 10;
 const HOW_MANY_EPISODES = 50;
 
+// Newest known picture address per podcast (filled in by fyydEpisodes below).
+const freshImages = new Map();
+
+// fyyd's own picture server refuses to show pictures inside other websites.
+function isBlockedImage(address) {
+  return /fyyd\.de\/pd\//.test(address || "");
+}
+
 // Helper: fetch a web address and read the answer as JSON (structured data).
 async function getJson(url) {
   const response = await fetch(url);
@@ -38,7 +46,9 @@ async function searchFyyd(name) {
     id: p.id,
     title: p.title || "(no title)",
     author: p.author || "",
-    image: p.smallImageURL || p.imgURL || "",
+    // imgURL is the podcaster's original picture. fyyd's own resized copies
+    // (smallImageURL...) can't be shown inside other websites, so we don't use them.
+    image: p.imgURL || "",
     feedUrl: p.xmlURL,
     description: p.description || "",
   }));
@@ -49,6 +59,9 @@ async function fyydEpisodes(podcast) {
     `${FYYD_API}/podcast/episodes?podcast_id=${podcast.id}&count=${HOW_MANY_EPISODES}`
   );
   const episodes = (data.data && data.data.episodes) || [];
+  // The answer also contains the podcast's current picture address. Remember it,
+  // so a saved subscription with an old or broken picture can be repaired.
+  if (data.data && data.data.imgURL) freshImages.set(feedKey(podcast.feedUrl), data.data.imgURL);
   return episodes.map((e) => ({
     title: e.title || "(no title)",
     date: e.pubdate ? new Date(e.pubdate) : null,
